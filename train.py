@@ -404,9 +404,9 @@ def main():
     parser.add_argument("--task",        type=str,   default="classification",
                         choices=["classification", "localization", "segmentation", "multitask"])
     parser.add_argument("--data_root",   type=str,
-                        default="/content/data/")
+                        default="/kaggle/input/oxford-iiit-pet")
     parser.add_argument("--ckpt_dir",    type=str,
-                        default="/content/drive/MyDrive/dl_assignment/checkpoints")
+                        default="/kaggle/working/checkpoints")
     parser.add_argument("--epochs",      type=int,   default=1)
     parser.add_argument("--batch_size",  type=int,   default=32)
     parser.add_argument("--lr",          type=float, default=1e-3)
