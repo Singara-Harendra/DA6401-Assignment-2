@@ -13,7 +13,9 @@ from .localization import VGG11Localizer
 from .segmentation import VGG11UNet
 
 
-CLASSIFIER_DRIVE_ID = '1EoZoEqc0lTgArEJEfT-PCe-7qEWFmsR4'
+CLASSIFIER_DRIVE_ID = '1zdSg4gsWsN_e9OYdutC2pnJLcXBSMto3'
+#cid = '1EoZoEqc0lTgArEJEfT-PCe-7qEWFmsR4'
+
 LOCALIZER_DRIVE_ID = '1oxy2Xk2pdUTX_g0pq7odch9vlD8G0-uj' 
 UNET_DRIVE_ID = '1ogUFUjDZZ7sNMiwttB0RxSia9BIec5ca'
 
