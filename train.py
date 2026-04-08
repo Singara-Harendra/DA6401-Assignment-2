@@ -404,7 +404,7 @@ def main():
     parser.add_argument("--task",        type=str,   default="classification",
                         choices=["classification", "localization", "segmentation", "multitask"])
     parser.add_argument("--data_root",   type=str,
-                        default="/content/drive/MyDrive/dl_assignment/oxford-iiit-pet")
+                        default="/content/data/")
     parser.add_argument("--ckpt_dir",    type=str,
                         default="/content/drive/MyDrive/dl_assignment/checkpoints")
     parser.add_argument("--epochs",      type=int,   default=1)
