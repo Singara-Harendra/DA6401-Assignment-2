@@ -117,7 +117,7 @@ class MultiTaskPerceptionModel(nn.Module):
         def _try_load(path: str):
             if path and os.path.isfile(path):
                 ckpt = torch.load(path, map_location="cpu")
-                return ckpt.get("model", ckpt)  # unwrap {"model": state_dict}
+                return ckpt.get("state_dict", ckpt.get("model", ckpt))
             return None
 
         clf_state  = _try_load(clf_path)

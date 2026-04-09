@@ -69,7 +69,7 @@ def main():
         model = VGG11UNet(num_classes=args.seg_classes).to(device)
 
     ckpt = torch.load(args.ckpt, map_location=device)
-    state = ckpt.get("model", ckpt)
+    state = ckpt.get("state_dict", ckpt.get("model", ckpt))
     model.load_state_dict(state, strict=False)
     print(f"Loaded checkpoint from {args.ckpt}")
 

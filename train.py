@@ -170,7 +170,9 @@ def load_checkpoint(path: str, model: nn.Module, optimizer=None, scheduler=None)
         print(f"  [ckpt] No checkpoint at '{path}' — starting from scratch.")
         return 0, -1.0   # best_metric starts at -1 (we maximise)
     ckpt = torch.load(path, map_location="cpu")
-    model.load_state_dict(ckpt["model"])
+    
+    model.load_state_dict(ckpt.get("state_dict", ckpt.get("model")))
+    
     if optimizer and "optimizer" in ckpt:
         optimizer.load_state_dict(ckpt["optimizer"])
     if scheduler and "scheduler" in ckpt:
@@ -551,7 +553,7 @@ def main():
         # ── Save last checkpoint (always, for resuming) ───────────────────────
         save_checkpoint({
             "epoch":        epoch + 1,
-            "model":        model.state_dict(),
+            "state_dict":   model.state_dict(),
             "optimizer":    optimizer.state_dict(),
             "scheduler":    scheduler.state_dict(),
             "val_loss":     val_m["loss"],
@@ -563,7 +565,7 @@ def main():
             best_metric = cur_metric
             save_checkpoint({
                 "epoch":        epoch + 1,
-                "model":        model.state_dict(),
+                "state_dict":   model.state_dict(),
                 "val_loss":     val_m["loss"],
                 "best_metric":  best_metric,
             }, best_path)
