@@ -119,56 +119,69 @@ class MultiTaskPerceptionModel(nn.Module):
         self._load_pretrained(classifier_path, localizer_path, unet_path)
 
     # ------------------------------------------------------------------
-    def _load_pretrained(self, clf_path: str, loc_path: str, unet_path: str):
-        """Copy weights from individually-trained task models."""
-        def _try_load(path: str):
-            if path and os.path.isfile(path):
-                ckpt = torch.load(path, map_location="cpu")
-                # Extract from "state_dict" first to match new training script format
-                return ckpt.get("state_dict", ckpt.get("model", ckpt)) 
-            return None
+   def _load_pretrained(self, clf_path: str, loc_path: str, unet_path: str):
+    """Load weights from individually-trained models into the unified model."""
 
-        clf_state  = _try_load(clf_path)
-        loc_state  = _try_load(loc_path)
-        unet_state = _try_load(unet_path)
+    def _try_load(path: str):
+        if path and os.path.isfile(path):
+            ckpt = torch.load(path, map_location="cpu")
+            return ckpt.get("state_dict", ckpt.get("model", ckpt))
+        return None
 
-        if clf_state is not None:
-            # Backbone from classifier (first available wins)
-            enc_state = {k[len("encoder."):]: v for k, v in clf_state.items()
-                         if k.startswith("encoder.")}
-            self.encoder.load_state_dict(enc_state, strict=False)
+    clf_state  = _try_load(clf_path)
+    loc_state  = _try_load(loc_path)
+    unet_state = _try_load(unet_path)
 
-            cls_state = {k[len("classifier."):]: v for k, v in clf_state.items()
-                         if k.startswith("classifier.")}
-            self.cls_head.load_state_dict(cls_state, strict=False)
+    # Build one combined state dict for self (MultiTaskPerceptionModel)
+    # by explicitly renaming keys from each individual model checkpoint.
+    combined = {}
 
-        if loc_state is not None:
-            loc_head_state = {k[len("regressor."):]: v for k, v in loc_state.items()
-                              if k.startswith("regressor.")}
-            self.loc_head.load_state_dict(loc_head_state, strict=False)
+    # ---- From classifier.pth (VGG11Classifier) ----
+    # Keys: encoder.* and classifier.*
+    # Maps: classifier.* -> cls_head.*  (same indices, just different module name)
+    if clf_state is not None:
+        for k, v in clf_state.items():
+            if k.startswith("encoder."):
+                combined[k] = v                          # encoder.* -> encoder.*
+            elif k.startswith("classifier."):
+                new_k = "cls_head." + k[len("classifier."):]
+                combined[new_k] = v                      # classifier.* -> cls_head.*
 
-        if unet_state is not None:
-            # Maps: (key_in_unet_state_dict, attribute_on_self)
-            seg_key_map = [
-                ("up5", "up5"), ("dec5", "dec5"),
-                ("up4", "up4"), ("dec4", "dec4"),
-                ("up3", "up3"), ("dec3", "dec3"),
-                ("up2", "up2"), ("dec2", "dec2"),
-                ("up1", "up1"), ("dec1", "dec1"),
-                ("dropout", "seg_dropout"),
-                ("final_conv", "seg_final"),   # VGG11UNet uses final_conv; we store as seg_final
-            ]
-            for unet_key, self_attr in seg_key_map:
-                module = getattr(self, self_attr, None)
-                if module is None:
-                    continue
-                sub_state = {k[len(unet_key) + 1:]: v for k, v in unet_state.items()
-                             if k.startswith(unet_key + ".")}
-                if sub_state:
-                    try:
-                        module.load_state_dict(sub_state, strict=False)
-                    except Exception:
-                        pass
+    # ---- From localizer.pth (VGG11Localizer) ----
+    # Keys: encoder.* and regressor.*
+    # Maps: regressor.* -> loc_head.*
+    if loc_state is not None:
+        for k, v in loc_state.items():
+            if k.startswith("regressor."):
+                new_k = "loc_head." + k[len("regressor."):]
+                combined[new_k] = v                      # regressor.* -> loc_head.*
+            # skip encoder.* — already loaded from classifier
+
+    # ---- From unet.pth (VGG11UNet) ----
+    # Keys: encoder.*, up5.*, dec5.*, ..., up1.*, dec1.*, dropout.*, final_conv.*
+    # Maps: final_conv.* -> seg_final.*  (everything else same name)
+    if unet_state is not None:
+        for k, v in unet_state.items():
+            if k.startswith("encoder."):
+                pass  # already loaded from classifier
+            elif k.startswith("final_conv."):
+                new_k = "seg_final." + k[len("final_conv."):]
+                combined[new_k] = v                      # final_conv.* -> seg_final.*
+            elif k.startswith("dropout."):
+                new_k = "seg_dropout." + k[len("dropout."):]
+                combined[new_k] = v                      # dropout.* -> seg_dropout.*
+            else:
+                combined[k] = v  # up5.*, dec5.*, up4.*, dec4.* etc. match exactly
+
+    if combined:
+        missing, unexpected = [], []
+        result = self.load_state_dict(combined, strict=False)
+        print(f"[MultiTask] Loaded {len(combined)} keys.")
+        print(f"[MultiTask] Missing keys : {result.missing_keys}")
+        print(f"[MultiTask] Unexpected   : {result.unexpected_keys}")
+    else:
+        print("[MultiTask] WARNING: No checkpoint weights loaded — all heads are random!")
+
 
     # ------------------------------------------------------------------
     def forward(self, x: torch.Tensor):
