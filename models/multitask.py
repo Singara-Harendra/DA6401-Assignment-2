@@ -4,6 +4,7 @@
 import os
 import torch
 import torch.nn as nn
+import gdown
 
 from .vgg11 import VGG11Encoder
 from .layers import CustomDropout
@@ -11,10 +12,9 @@ from .classification import VGG11Classifier
 from .localization import VGG11Localizer
 from .segmentation import VGG11UNet
 
-#https://drive.google.com/file/d/1hPMCBM5kHexkK4mI_HPUI-wYLMxEOyr_/view?usp=sharing
+#https://drive.google.com/file/d/1hPMCBM5kHexkK4mI_HPUI-wYLMxEOyr_/view?usp=drive_link
 
 CLASSIFIER_DRIVE_ID = '1hPMCBM5kHexkK4mI_HPUI-wYLMxEOyr_'
-
 LOCALIZER_DRIVE_ID = '1oxy2Xk2pdUTX_g0pq7odch9vlD8G0-uj' 
 UNET_DRIVE_ID = '1ogUFUjDZZ7sNMiwttB0RxSia9BIec5ca'
 
@@ -64,6 +64,11 @@ class MultiTaskPerceptionModel(nn.Module):
             dropout_p: Dropout probability for all heads.
         """
         super().__init__()
+
+        # ---- Download checkpoints from Google Drive ----
+        gdown.download(id=CLASSIFIER_DRIVE_ID, output=classifier_path, quiet=False)
+        gdown.download(id=LOCALIZER_DRIVE_ID, output=localizer_path, quiet=False)
+        gdown.download(id=UNET_DRIVE_ID, output=unet_path, quiet=False)
 
         # ---- Shared backbone ----
         self.encoder = VGG11Encoder(in_channels=in_channels)
@@ -117,7 +122,8 @@ class MultiTaskPerceptionModel(nn.Module):
         def _try_load(path: str):
             if path and os.path.isfile(path):
                 ckpt = torch.load(path, map_location="cpu")
-                return ckpt.get("state_dict", ckpt.get("model", ckpt))
+                # Extract from "state_dict" first to match new training script format
+                return ckpt.get("state_dict", ckpt.get("model", ckpt)) 
             return None
 
         clf_state  = _try_load(clf_path)
