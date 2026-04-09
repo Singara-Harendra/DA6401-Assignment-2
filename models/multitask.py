@@ -12,11 +12,13 @@ from .classification import VGG11Classifier
 from .localization import VGG11Localizer
 from .segmentation import VGG11UNet
 
-#https://drive.google.com/file/d/1hPMCBM5kHexkK4mI_HPUI-wYLMxEOyr_/view?usp=drive_link
+#cid = https://drive.google.com/file/d/1oTkQJXHqKh7K4VFYJ8UAv7-XTNt8F26j/view?usp=sharing
+#lid = https://drive.google.com/file/d/1TGGdkTiSjinKB7pckM9rE87tUjH_YUdK/view?usp=sharing
+#uid = https://drive.google.com/file/d/1cFT1mGimel4w_Zq1vw6De8Rje7Q3ntFb/view?usp=sharing
 
-CLASSIFIER_DRIVE_ID = '1hPMCBM5kHexkK4mI_HPUI-wYLMxEOyr_'
-LOCALIZER_DRIVE_ID = '1oxy2Xk2pdUTX_g0pq7odch9vlD8G0-uj' 
-UNET_DRIVE_ID = '1ogUFUjDZZ7sNMiwttB0RxSia9BIec5ca'
+CLASSIFIER_DRIVE_ID = '1oTkQJXHqKh7K4VFYJ8UAv7-XTNt8F26j'
+LOCALIZER_DRIVE_ID = '1TGGdkTiSjinKB7pckM9rE87tUjH_YUdK' 
+UNET_DRIVE_ID = '1cFT1mGimel4w_Zq1vw6De8Rje7Q3ntFb'
 
 def _double_conv(in_ch: int, out_ch: int) -> nn.Sequential:
     return nn.Sequential(
