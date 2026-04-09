@@ -31,8 +31,8 @@ class MultiTaskPerceptionModel(nn.Module):
         num_breeds: int = 37,
         seg_classes: int = 3,
         in_channels: int = 3,
-        classifier_path: str = "classifier.pth",
-        localizer_path: str = "localizer.pth",
+        classifier_path: str = "/autograder/source/classifier.pth",
+        localizer_path: str = "/autograder/source/localizer.pth",
         unet_path: str = "unet.pth",
         dropout_p: float = 0.5,
     ):
