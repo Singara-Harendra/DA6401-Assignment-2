@@ -15,6 +15,10 @@ CLASSIFIER_DRIVE_ID = '1oTkQJXHqKh7K4VFYJ8UAv7-XTNt8F26j'
 LOCALIZER_DRIVE_ID = '1TGGdkTiSjinKB7pckM9rE87tUjH_YUdK' 
 UNET_DRIVE_ID = '1cFT1mGimel4w_Zq1vw6De8Rje7Q3ntFb'
 
+CLASSIFIER_DRIVE_ID = '1oTkQJXHqKh7K4VFYJ8UAv7-XTNt8F26j'
+LOCALIZER_DRIVE_ID = '1TGGdkTiSjinKB7pckM9rE87tUjH_YUdK' 
+UNET_DRIVE_ID = '1cFT1mGimel4w_Zq1vw6De8Rje7Q3ntFb'
+
 def _double_conv(in_ch: int, out_ch: int) -> nn.Sequential:
     return nn.Sequential(
         nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1, bias=False),
@@ -183,6 +187,7 @@ class MultiTaskPerceptionModel(nn.Module):
 
 
 """Unified multi-task model"""
+"""Unified multi-task model"""
 
 import os
 import torch
@@ -192,9 +197,9 @@ import gdown
 from .vgg11 import VGG11Encoder
 from .layers import CustomDropout
 
-CLASSIFIER_DRIVE_ID = '1oTkQJXHqKh7K4VFYJ8UAv7-XTNt8F26j'
-LOCALIZER_DRIVE_ID = '1TGGdkTiSjinKB7pckM9rE87tUjH_YUdK' 
-UNET_DRIVE_ID = '1cFT1mGimel4w_Zq1vw6De8Rje7Q3ntFb'
+# 🔥 TODO: Paste your NEW Google Drive ID for the 30-epoch best.pth here!
+MASTER_DRIVE_ID = '1e3H9XiWuBXtffYu9w-61UmeMDRXA0T8m' 
+#https://drive.google.com/file/d/1e3H9XiWuBXtffYu9w-61UmeMDRXA0T8m/view?usp=drive_link
 
 def _double_conv(in_ch: int, out_ch: int) -> nn.Sequential:
     return nn.Sequential(
@@ -207,25 +212,26 @@ def _double_conv(in_ch: int, out_ch: int) -> nn.Sequential:
     )
 
 class MultiTaskPerceptionModel(nn.Module):
-    """Unified multi-task model with a shared backbone loaded via Google Drive."""
+    """Unified multi-task model loaded from a single master checkpoint."""
 
     def __init__(
         self,
         num_breeds: int = 37,
         seg_classes: int = 3,
         in_channels: int = 3,
-        classifier_path: str = "/autograder/source/classifier.pth",
-        localizer_path: str = "/autograder/source/localizer.pth",
-        unet_path: str = "unet.pth",
+        classifier_path: str = "", # Kept for train.py compatibility
+        localizer_path: str = "",  # Kept for train.py compatibility
+        unet_path: str = "",       # Kept for train.py compatibility
         dropout_p: float = 0.5,
     ):
         super().__init__()
+        
+        master_ckpt_path = "/autograder/source/multitask_best.pth"
 
-        # ---- Download from Drive ----
-        print("Downloading checkpoints from Google Drive...")
-        gdown.download(id=CLASSIFIER_DRIVE_ID, output=classifier_path, quiet=False)
-        gdown.download(id=LOCALIZER_DRIVE_ID, output=localizer_path, quiet=False)
-        gdown.download(id=UNET_DRIVE_ID, output=unet_path, quiet=False)
+        # ---- Download Single Master Checkpoint from Drive ----
+        if MASTER_DRIVE_ID != 'YOUR_NEW_DRIVE_ID_HERE' and not os.path.exists(master_ckpt_path):
+            print("Downloading master checkpoint from Google Drive...")
+            gdown.download(id=MASTER_DRIVE_ID, output=master_ckpt_path, quiet=False)
 
         # ---- ONE Shared Backbone ----
         self.encoder = VGG11Encoder(in_channels=in_channels)
@@ -270,51 +276,16 @@ class MultiTaskPerceptionModel(nn.Module):
         self.seg_dropout = CustomDropout(p=dropout_p)
         self.seg_final = nn.Conv2d(32, seg_classes, kernel_size=1)
 
-        # Load weights carefully into the single backbone
-        self._load_pretrained(classifier_path, localizer_path, unet_path)
+        # Load weights into the unified model natively
+        self._load_pretrained(master_ckpt_path)
 
-    def _load_pretrained(self, clf_path: str, loc_path: str, unet_path: str):
-        def _try_load(path: str):
-            if path and os.path.isfile(path):
-                ckpt = torch.load(path, map_location="cpu")
-                return ckpt.get("state_dict", ckpt.get("model", ckpt)) 
-            return None
-
-        clf_state  = _try_load(clf_path)
-        loc_state  = _try_load(loc_path)
-        unet_state = _try_load(unet_path)
-
-        # 1. Initialize Shared Backbone & Cls Head from Classifier
-        if clf_state is not None:
-            enc_state = {k[len("encoder."):]: v for k, v in clf_state.items() if k.startswith("encoder.")}
-            self.encoder.load_state_dict(enc_state, strict=False)
-            
-            cls_state = {k[len("classifier."):]: v for k, v in clf_state.items() if k.startswith("classifier.")}
-            self.cls_head.load_state_dict(cls_state, strict=False)
-
-        # 2. Load Localizer Head (Do NOT overwrite shared encoder)
-        if loc_state is not None:
-            loc_head_state = {k[len("regressor."):]: v for k, v in loc_state.items() if k.startswith("regressor.")}
-            self.loc_head.load_state_dict(loc_head_state, strict=False)
-
-        # 3. Load UNet Decoder (Do NOT overwrite shared encoder)
-        if unet_state is not None:
-            seg_key_map = [
-                ("up5", "up5"), ("dec5", "dec5"),
-                ("up4", "up4"), ("dec4", "dec4"),
-                ("up3", "up3"), ("dec3", "dec3"),
-                ("up2", "up2"), ("dec2", "dec2"),
-                ("up1", "up1"), ("dec1", "dec1"),
-                ("dropout", "seg_dropout"),
-                ("final_conv", "seg_final"),   
-            ]
-            for unet_key, self_attr in seg_key_map:
-                module = getattr(self, self_attr, None)
-                if module is None: continue
-                sub_state = {k[len(unet_key) + 1:]: v for k, v in unet_state.items() if k.startswith(unet_key + ".")}
-                if sub_state:
-                    try: module.load_state_dict(sub_state, strict=False)
-                    except Exception: pass
+    def _load_pretrained(self, master_path: str):
+        if master_path and os.path.isfile(master_path):
+            ckpt = torch.load(master_path, map_location="cpu")
+            # Since we trained the exact MultiTaskPerceptionModel class, 
+            # the state_dict natively matches! No manual mapping needed.
+            state_dict = ckpt.get("state_dict", ckpt.get("model", ckpt))
+            self.load_state_dict(state_dict, strict=False)
 
     def forward(self, x: torch.Tensor):
         H, W = x.shape[2], x.shape[3]
