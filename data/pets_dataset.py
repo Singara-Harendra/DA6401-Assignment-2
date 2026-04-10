@@ -147,10 +147,24 @@ class OxfordIIITPetDataset(Dataset):
             )
 
         # ── Class map ─────────────────────────────────────────────────────────
-        breed_names = sorted({p.stem.rsplit("_", 1)[0] for p in samples})
+        # ── Class map ─────────────────────────────────────────────────────────
+        # 🛠️ THE FIX: Hardcode the 37 classes so test-set indices always match training
+        breed_names = [
+            'Abyssinian', 'Bengal', 'Birman', 'Bombay', 'British_Shorthair',
+            'Egyptian_Mau', 'Maine_Coon', 'Persian', 'Ragdoll', 'Russian_Blue',
+            'Siamese', 'Sphynx', 'american_bulldog', 'american_pit_bull_terrier',
+            'basset_hound', 'beagle', 'boxer', 'chihuahua', 'english_cocker_spaniel',
+            'english_setter', 'german_shorthaired', 'great_pyrenees', 'havanese',
+            'japanese_chin', 'keeshond', 'leonberger', 'miniature_pinscher',
+            'newfoundland', 'pomeranian', 'pug', 'saint_bernard', 'samoyed',
+            'scottish_terrier', 'shiba_inu', 'staffordshire_bull_terrier',
+            'wheaten_terrier', 'yorkshire_terrier'
+        ]
+        
         self.class_to_idx = {name: idx for idx, name in enumerate(breed_names)}
         self.idx_to_class = {v: k for k, v in self.class_to_idx.items()}
 
+        
         # ── Reproducible 90 / 10 train / val split  (NO test split) ──────────
         rng = random.Random(seed)
         samples_list = list(samples)

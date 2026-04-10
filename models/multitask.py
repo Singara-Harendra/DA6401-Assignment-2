@@ -282,11 +282,24 @@ class MultiTaskPerceptionModel(nn.Module):
     def _load_pretrained(self, master_path: str):
         if master_path and os.path.isfile(master_path):
             ckpt = torch.load(master_path, map_location="cpu")
-            # Since we trained the exact MultiTaskPerceptionModel class, 
-            # the state_dict natively matches! No manual mapping needed.
             state_dict = ckpt.get("state_dict", ckpt.get("model", ckpt))
-            self.load_state_dict(state_dict, strict=False)
+            
+            # 🛠️ THE FIX: Map legacy separated-backbone keys to the new shared backbone
+            mapped_state_dict = {}
+            for k, v in state_dict.items():
+                # Reroute the strongest encoder (classification) into the shared backbone
+                if k.startswith("encoder_cls."):
+                    new_k = k.replace("encoder_cls.", "encoder.")
+                    mapped_state_dict[new_k] = v
+                # Drop redundant encoders so they don't cause conflicts
+                elif k.startswith("encoder_loc.") or k.startswith("encoder_seg."):
+                    continue 
+                else:
+                    mapped_state_dict[k] = v
+                    
+            self.load_state_dict(mapped_state_dict, strict=False)
 
+            
     def forward(self, x: torch.Tensor):
         H, W = x.shape[2], x.shape[3]
 
