@@ -1,4 +1,3 @@
-'''
 
 """Unified multi-task model
 """
@@ -10,10 +9,6 @@ import gdown
 
 from .vgg11 import VGG11Encoder
 from .layers import CustomDropout
-
-CLASSIFIER_DRIVE_ID = '1oTkQJXHqKh7K4VFYJ8UAv7-XTNt8F26j'
-LOCALIZER_DRIVE_ID = '1TGGdkTiSjinKB7pckM9rE87tUjH_YUdK' 
-UNET_DRIVE_ID = '1cFT1mGimel4w_Zq1vw6De8Rje7Q3ntFb'
 
 CLASSIFIER_DRIVE_ID = '1oTkQJXHqKh7K4VFYJ8UAv7-XTNt8F26j'
 LOCALIZER_DRIVE_ID = '1TGGdkTiSjinKB7pckM9rE87tUjH_YUdK' 
@@ -299,7 +294,7 @@ class MultiTaskPerceptionModel(nn.Module):
                     
             self.load_state_dict(mapped_state_dict, strict=False)
 
-            
+
     def forward(self, x: torch.Tensor):
         H, W = x.shape[2], x.shape[3]
 
@@ -345,3 +340,5 @@ class MultiTaskPerceptionModel(nn.Module):
             "localization":   bbox_out,
             "segmentation":   seg_out,
         }
+
+'''
