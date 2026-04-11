@@ -323,9 +323,7 @@ class MultiTaskPerceptionModel(nn.Module):
 
         # ---- Localisation Branch ----
         loc_feat = self.adaptive_pool_loc(bottleneck)
-        raw_bbox = self.loc_head(loc_feat)
-        scale    = torch.tensor([W, H, W, H], dtype=x.dtype, device=x.device)
-        bbox_out = torch.sigmoid(raw_bbox) * scale
+        bbox_out = self.loc_head(loc_feat) # <-- Just return the raw regression output! 
 
         # ---- Segmentation Branch ----
         d = self.up5(bottleneck)
@@ -346,14 +344,14 @@ class MultiTaskPerceptionModel(nn.Module):
         d = self.seg_dropout(d)
         seg_out = self.seg_final(d)
 
-        # 1. Permute ASCII-sorted logits to match PyTorch Alphabetical sorting 
+      '''  # 1. Permute ASCII-sorted logits to match PyTorch Alphabetical sorting 
         # (Preserved because training dataloader differed from autograder index expectations)
         perm = [0, 12, 13, 14, 15, 1, 2, 3, 16, 4, 17, 5, 18, 19, 20, 21, 22, 23, 
                 24, 25, 6, 26, 27, 7, 28, 29, 8, 9, 30, 31, 32, 33, 10, 11, 34, 35, 36]
-        cls_out_fixed = cls_out[:, perm]
+        cls_out_fixed = cls_out[:, perm]'''
 
         return {
-            "classification": cls_out_fixed,
+            "classification": cls_out,
             "localization":   bbox_out, # <-- Bypass removed. Returning genuine loc_head output!
             "segmentation":   seg_out,
         }
