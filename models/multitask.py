@@ -236,7 +236,7 @@ class MultiTaskPerceptionModel(nn.Module):
         #https://drive.google.com/file/d/1TGGdkTiSjinKB7pckM9rE87tUjH_YUdK/view?usp=sharing
         #https://drive.google.com/file/d/1-Ycl14PrIYs68pCG-u3fZ1P4n0Y6RnKo/view?usp=drive_link
         gdown.download(id="1e3H9XiWuBXtffYu9w-61UmeMDRXA0T8m", output=classifier_path, quiet=False)
-        gdown.download(id="1TGGdkTiSjinKB7pckM9rE87tUjH_YUdK", output=localizer_path, quiet=False)
+        gdown.download(id="1-Ycl14PrIYs68pCG-u3fZ1P4n0Y6RnKo", output=localizer_path, quiet=False)
         gdown.download(id="1-Ycl14PrIYs68pCG-u3fZ1P4n0Y6RnKo", output=unet_path, quiet=False)
 
         # ---- ONE Shared Backbone ----
