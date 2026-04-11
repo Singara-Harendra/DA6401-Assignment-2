@@ -202,7 +202,8 @@ import gdown
 from .vgg11 import VGG11Encoder
 from .layers import CustomDropout
 
-MASTER_DRIVE_ID = '1e3H9XiWuBXtffYu9w-61UmeMDRXA0T8m' 
+#https://drive.google.com/file/d/1-Ycl14PrIYs68pCG-u3fZ1P4n0Y6RnKo/view?usp=sharing
+MASTER_DRIVE_ID = '1-Ycl14PrIYs68pCG-u3fZ1P4n0Y6RnKo' 
 
 def _double_conv(in_ch: int, out_ch: int) -> nn.Sequential:
     return nn.Sequential(
