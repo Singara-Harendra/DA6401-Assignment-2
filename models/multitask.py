@@ -234,12 +234,13 @@ class MultiTaskPerceptionModel(nn.Module):
         #https://drive.google.com/file/d/1oTkQJXHqKh7K4VFYJ8UAv7-XTNt8F26j/view?usp=sharing
         #https://drive.google.com/file/d/1TGGdkTiSjinKB7pckM9rE87tUjH_YUdK/view?usp=sharing
         #https://drive.google.com/file/d/1cFT1mGimel4w_Zq1vw6De8Rje7Q3ntFb/view?usp=sharing
+        #https://drive.google.com/file/d/1-Ycl14PrIYs68pCG-u3fZ1P4n0Y6RnKo/view?usp=drive_link
         if not os.path.exists(classifier_path):
-            gdown.download(id="1oTkQJXHqKh7K4VFYJ8UAv7-XTNt8F26j", output=classifier_path, quiet=False)
+            gdown.download(id="1-Ycl14PrIYs68pCG-u3fZ1P4n0Y6RnKo", output=classifier_path, quiet=False)
         if not os.path.exists(localizer_path):
-            gdown.download(id="1TGGdkTiSjinKB7pckM9rE87tUjH_YUdK", output=localizer_path, quiet=False)
+            gdown.download(id="1-Ycl14PrIYs68pCG-u3fZ1P4n0Y6RnKo", output=localizer_path, quiet=False)
         if not os.path.exists(unet_path):
-            gdown.download(id="1cFT1mGimel4w_Zq1vw6De8Rje7Q3ntFb", output=unet_path, quiet=False)
+            gdown.download(id="1-Ycl14PrIYs68pCG-u3fZ1P4n0Y6RnKo", output=unet_path, quiet=False)
 
         # ---- ONE Shared Backbone ----
         self.encoder = VGG11Encoder(in_channels=in_channels)
