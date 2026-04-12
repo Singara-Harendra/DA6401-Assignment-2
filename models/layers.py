@@ -40,14 +40,12 @@ class CustomDropout(nn.Module):
         Returns:
             Output tensor with same shape as input.
         """
-        # Eval mode or p==0: identity
+
         if not self.training or self.p == 0.0:
             return x
 
         keep_prob = 1.0 - self.p
-        # Sample binary keep-mask: 1 = keep, 0 = drop
         mask = torch.bernoulli(
             torch.full(x.shape, keep_prob, dtype=x.dtype, device=x.device)
         )
-        # Inverted dropout: scale surviving activations so E[output] == E[input]
         return x * mask / keep_prob

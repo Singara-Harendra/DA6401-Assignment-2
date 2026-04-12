@@ -17,8 +17,6 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 
-# ── Augmentation pipelines ────────────────────────────────────────────────────
-
 def get_train_transforms(image_size: int = 224) -> A.Compose:
     return A.Compose(
         [
@@ -60,23 +58,19 @@ def _find_images_dir(root: Path) -> Path:
         root/oxford-iiit-pet/images/*.jpg  <- nested after tar extract
         root/*.jpg                         <- flat (unlikely but handled)
     """
-    # 1. Direct child
     candidate = root / "images"
     if candidate.is_dir() and any(candidate.glob("*.jpg")):
         return candidate
 
-    # 2. One level deeper (tar extracts with an extra folder)
     for sub in sorted(root.iterdir()):
         if sub.is_dir():
             candidate = sub / "images"
             if candidate.is_dir() and any(candidate.glob("*.jpg")):
                 return candidate
 
-    # 3. Root itself contains jpegs (flat layout)
     if any(root.glob("*.jpg")):
         return root
 
-    # 4. Give up — return standard path so the error message is informative
     return root / "images"
 
 
@@ -89,19 +83,9 @@ def _find_annotations_dir(root: Path, images_dir: Path) -> Path:
 
 
 class OxfordIIITPetDataset(Dataset):
-    """Oxford-IIIT Pet multi-task dataset.
+   
 
-    Split strategy: 90 % train / 10 % val  (no held-out test split —
-    the autograder supplies its own private test set).
-
-    Returns per sample:
-        image  : FloatTensor [3, H, W]  (normalised)
-        label  : LongTensor  []          (breed index 0-36)
-        bbox   : FloatTensor [4]         (cx, cy, w, h) in pixel space
-        mask   : LongTensor  [H, W]      (0=fg, 1=bg, 2=boundary)
-    """
-
-    TRIMAP_MAP = {1: 0, 2: 1, 3: 2}   # Oxford pixel values -> 0-indexed
+    TRIMAP_MAP = {1: 0, 2: 1, 3: 2}   
 
     def __init__(
         self,
@@ -109,7 +93,7 @@ class OxfordIIITPetDataset(Dataset):
         split: str = "train",
         image_size: int = 224,
         val_ratio: float = 0.1,
-        test_ratio: float = 0.1,   # kept for API compatibility — ignored
+        test_ratio: float = 0.1,   
         seed: int = 42,
     ):
         assert split in ("train", "val", "test"), f"Unknown split '{split}'"
@@ -123,7 +107,6 @@ class OxfordIIITPetDataset(Dataset):
             else get_val_transforms(image_size)
         )
 
-        # ── Locate images/ ────────────────────────────────────────────────────
         images_dir = _find_images_dir(self.root)
         if not images_dir.is_dir():
             raise FileNotFoundError(
@@ -134,7 +117,7 @@ class OxfordIIITPetDataset(Dataset):
                 f"  for p in sorted(Path('{root}').rglob('*.jpg'))[:5]: print(p)"
             )
 
-        # Accept .jpg / .jpeg / .png
+
         samples = sorted([
             p for p in images_dir.iterdir()
             if p.suffix.lower() in {".jpg", ".jpeg", ".png"}
@@ -146,10 +129,8 @@ class OxfordIIITPetDataset(Dataset):
                 f"Check the dataset extracted correctly."
             )
 
-        # ── Class map ─────────────────────────────────────────────────────────
-        # ── Class map ─────────────────────────────────────────────────────────
-        # 🛠️ THE FIX: Hardcode the 37 classes so test-set indices always match training
-        breed_names = [
+      
+      breed_names = [
             'Abyssinian', 'Bengal', 'Birman', 'Bombay', 'British_Shorthair',
             'Egyptian_Mau', 'Maine_Coon', 'Persian', 'Ragdoll', 'Russian_Blue',
             'Siamese', 'Sphynx', 'american_bulldog', 'american_pit_bull_terrier',
@@ -165,18 +146,17 @@ class OxfordIIITPetDataset(Dataset):
         self.idx_to_class = {v: k for k, v in self.class_to_idx.items()}
 
         
-        # ── Reproducible 90 / 10 train / val split  (NO test split) ──────────
         rng = random.Random(seed)
         samples_list = list(samples)
         rng.shuffle(samples_list)
 
         n     = len(samples_list)
-        n_val = int(n * val_ratio)      # default: 10 %
+        n_val = int(n * val_ratio)     
 
         val_set   = samples_list[:n_val]
         train_set = samples_list[n_val:]
 
-        # "test" maps to val so any caller using split="test" still works
+
         split_map = {"train": train_set, "val": val_set, "test": val_set}
         self.samples = split_map[split]
 
@@ -186,27 +166,27 @@ class OxfordIIITPetDataset(Dataset):
             f"this_split={len(self.samples)}"
         )
 
-        # ── Annotation paths ──────────────────────────────────────────────────
+
         ann_dir          = _find_annotations_dir(self.root, images_dir)
         self.xmls_dir    = ann_dir / "xmls"
         self.trimaps_dir = ann_dir / "trimaps"
 
-    # ── Dataset protocol ──────────────────────────────────────────────────────
+
 
     def __len__(self) -> int:
         return len(self.samples)
 
     def __getitem__(self, idx: int):
         img_path = self.samples[idx]
-        stem     = img_path.stem                # e.g. "Abyssinian_1"
-        breed    = stem.rsplit("_", 1)[0]       # e.g. "Abyssinian"
+        stem     = img_path.stem                
+        breed    = stem.rsplit("_", 1)[0]       
         label    = self.class_to_idx[breed]
 
-        # Image
+
         image          = np.array(Image.open(img_path).convert("RGB"))
         H_orig, W_orig = image.shape[:2]
 
-        # Trimap mask
+
         trimap_path = self.trimaps_dir / f"{stem}.png"
         if trimap_path.exists():
             trimap_raw = np.array(Image.open(trimap_path).convert("L"))
@@ -216,7 +196,7 @@ class OxfordIIITPetDataset(Dataset):
         else:
             trimap = np.zeros((H_orig, W_orig), dtype=np.uint8)
 
-        # Bounding box: load (cx,cy,w,h) → convert to COCO (x_min,y_min,w,h)
+
         cx, cy, bw, bh = self._load_bbox(stem, W_orig, H_orig)
         x_min = max(0.0, cx - bw / 2)
         y_min = max(0.0, cy - bh / 2)
@@ -251,13 +231,13 @@ class OxfordIIITPetDataset(Dataset):
             "mask":  mask_tensor,
         }
 
-    # ── Helpers ───────────────────────────────────────────────────────────────
+
 
     def _load_bbox(self, stem: str, W: int, H: int) -> Tuple[float, float, float, float]:
         """Return (cx, cy, w, h) in pixels from Pascal VOC XML annotation."""
         xml_path = self.xmls_dir / f"{stem}.xml"
         if not xml_path.exists():
-            # No annotation: return full-image box
+
             return float(W / 2), float(H / 2), float(W), float(H)
         try:
             import xml.etree.ElementTree as ET

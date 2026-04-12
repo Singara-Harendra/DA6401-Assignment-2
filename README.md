@@ -1,10 +1,12 @@
-# Multi-Task Perception on Oxford-IIIT Pet Dataset 🐾
+# Multi-Task Perception on Oxford-IIIT Pet Dataset 
 
 **Report Link:** [https://api.wandb.ai/links/da25m028-indian-institute-of-technology-madras/tcvd9dn0](https://api.wandb.ai/links/da25m028-indian-institute-of-technology-madras/tcvd9dn0)
 
+**GitHub Repository:** [https://github.com/Singara-Harendra/DA6401-Assignment-2](https://github.com/Singara-Harendra/DA6401-Assignment-2)
+
 This repository contains a unified deep learning framework for solving three distinct computer vision tasks simultaneously on the Oxford-IIIT Pet dataset: **Classification** (breed recognition), **Localization** (bounding box regression), and **Segmentation** (pixel-level trimap prediction).
 
-## 🚀 Overview
+##  Overview
 
 The project implements a shared-backbone architecture using a VGG11 encoder. By sharing features, the model learns more robust representations across tasks while reducing overall computational overhead.
 
@@ -13,7 +15,7 @@ The project implements a shared-backbone architecture using a VGG11 encoder. By 
 - **Task 3: Segmentation** - Classifying each pixel into foreground, background, or boundary.
 - **Task 4: Unified Model** - A single multi-head model that performs all three tasks in one forward pass.
 
-## 🏗️ Project Structure
+##  Project Structure
 
 ```text
 ├── data/
@@ -36,7 +38,7 @@ The project implements a shared-backbone architecture using a VGG11 encoder. By 
 ├── README.md               # Project documentation
 └── requirements.txt        # Project dependencies
 
-## 🛠️ Installation
+##  Installation
 
 Ensure you have Python 3.8+ installed. Install the dependencies using:
 
@@ -44,7 +46,7 @@ Ensure you have Python 3.8+ installed. Install the dependencies using:
 pip install -r requirements.txt
 ```
 
-## 🏋️ Training
+##  Training
 
 You can train individual tasks or the unified model using `train.py`. The script supports automatic resuming from checkpoints and integrates with Weights & Biases for logging.
 
@@ -58,7 +60,7 @@ python train.py --task multitask --epochs 20 --batch_size 32 --lr 1e-3
 - `--data_root`: Path to the extracted Oxford-IIIT Pet dataset.
 - `--dropout_p`: Probability for the custom dropout layers (default: 0.5).
 
-## 🔍 Inference
+##  Inference
 
 Run inference on a single image using a trained checkpoint:
 
@@ -66,10 +68,3 @@ Run inference on a single image using a trained checkpoint:
 python inference.py --task multitask --image path/to/pet.jpg --ckpt checkpoints/multitask/best.pth
 ```
 
-## 📊 Evaluation Metrics
-
-The framework evaluates performance using standard metrics consistent with competition benchmarks:
-- **Classification:** Macro-F1 Score.
-- **Localization:** Accuracy at IoU >= 0.5.
-- **Segmentation:** Macro-Dice Coefficient.
-```

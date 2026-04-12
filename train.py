@@ -17,14 +17,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-# import wandb   # <-- uncomment when you want W&B logging
 
 from data.pets_dataset import OxfordIIITPetDataset
 from models import VGG11Classifier, VGG11Localizer, VGG11UNet, MultiTaskPerceptionModel
 from losses import IoULoss
 
 
-# ── Reproducibility ───────────────────────────────────────────────────────────
 
 def set_seed(seed: int = 42):
     random.seed(seed)
@@ -35,7 +33,6 @@ def set_seed(seed: int = 42):
     torch.backends.cudnn.benchmark = False
 
 
-# ── Dice loss ─────────────────────────────────────────────────────────────────
 
 class DiceLoss(nn.Module):
     """Soft Dice loss for multi-class segmentation."""
@@ -56,7 +53,6 @@ class DiceLoss(nn.Module):
         return 1.0 - dice.mean()
 
 
-# ── Metrics ───────────────────────────────────────────────────────────────────
 
 def compute_macro_f1(logits: torch.Tensor, targets: torch.Tensor,
                      num_classes: int = 37) -> float:
@@ -132,7 +128,6 @@ def compute_pixel_accuracy(logits: torch.Tensor, targets: torch.Tensor) -> float
     return (logits.argmax(dim=1) == targets).float().mean().item()
 
 
-# ── Primary metric extraction (what we use to pick best model) ────────────────
 
 def primary_metric(metrics: dict, task: str) -> float:
     """Return the single scalar used to decide whether to save best.pth.
@@ -157,7 +152,7 @@ def primary_metric(metrics: dict, task: str) -> float:
     return 0.0
 
 
-# ── Checkpoint helpers ────────────────────────────────────────────────────────
+
 
 def save_checkpoint(state: dict, path: str):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
@@ -184,7 +179,7 @@ def load_checkpoint(path: str, model: nn.Module, optimizer=None, scheduler=None)
     return epoch, best_metric
 
 
-# ── Training loop ─────────────────────────────────────────────────────────────
+
 
 def train_one_epoch(model, loader, optimizer, criterion, device, task):
     model.train()
@@ -329,7 +324,7 @@ def _compute_metrics(total_loss, n_batches,
     return m
 
 
-# ── Model / criterion builders ────────────────────────────────────────────────
+
 
 def build_model(task: str, cfg: dict, device):
     if task == "classification":
@@ -399,7 +394,7 @@ def build_criterion(task: str, device, seg_classes: int = 3):
     raise ValueError(f"Unknown task: {task}")
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser(description="DA6401 Assignment 2 – Training")
@@ -428,7 +423,7 @@ def main():
     set_seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # What metric drives best-model saving, per task
+
     primary_metric_name = {
         "classification": "Macro-F1",
         "localization":   "Acc@IoU≥0.5",
@@ -461,15 +456,15 @@ def main():
         "unet_path":       args.unet_path,
     }
 
-    # ── W&B init — uncomment this block when you want W&B logging ─────────────
-    # wandb.init(
-    #     project=args.wandb_project,
-    #     entity=args.wandb_entity,
-    #     config=cfg,
-    #     name=f"{args.task}_ep{args.epochs}_lr{args.lr}",
-    # )
 
-    # ── Datasets ──────────────────────────────────────────────────────────────
+    wandb.init(
+        project=args.wandb_project,
+        entity=args.wandb_entity,
+        config=cfg,
+        name=f"{args.task}_ep{args.epochs}_lr{args.lr}",
+    )
+
+
     train_ds = OxfordIIITPetDataset(
         args.data_root, split="train",
         image_size=args.image_size, seed=args.seed,
@@ -489,7 +484,7 @@ def main():
     print(f"\nTrain samples : {len(train_ds)}")
     print(f"Val   samples : {len(val_ds)}\n")
 
-    # ── Model, criterion, optimiser ───────────────────────────────────────────
+
     model     = build_model(args.task, cfg, device)
     criterion = build_criterion(args.task, device, seg_classes=cfg["seg_classes"])
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-4)
@@ -497,12 +492,12 @@ def main():
         optimizer, T_max=args.epochs,
     )
 
-    # ── Checkpoint paths ──────────────────────────────────────────────────────
+
     ckpt_dir  = Path(args.ckpt_dir) / args.task
     best_path = str(ckpt_dir / "best.pth")
     last_path = str(ckpt_dir / "last.pth")
 
-    # Resume automatically if last.pth exists
+
     start_epoch, best_metric = load_checkpoint(
         last_path, model, optimizer, scheduler,
     )
@@ -512,7 +507,7 @@ def main():
               f"Increase --epochs to continue training.")
         return
 
-    # ── Training loop ─────────────────────────────────────────────────────────
+
     for epoch in range(start_epoch, args.epochs):
         print(f"\n── Epoch [{epoch+1}/{args.epochs}] " + "─" * 40)
 
@@ -524,7 +519,7 @@ def main():
         )
         scheduler.step()
 
-        # ── Console summary ───────────────────────────────────────────────────
+
         def fmt(m, prefix=""):
             parts = [f"loss={m['loss']:.4f}"]
             if "acc"        in m: parts.append(f"acc={m['acc']:.3f}")
@@ -542,15 +537,14 @@ def main():
         print(f"  [{primary_metric_name}] = {cur_metric:.4f}  "
               f"(best so far = {max(best_metric, 0):.4f})")
 
-        # ── W&B logging — uncomment when you want W&B ─────────────────────────
-        # log_dict = {f"train/{k}": v for k, v in train_m.items()}
-        # log_dict.update({f"val/{k}": v for k, v in val_m.items()})
-        # log_dict["epoch"]                    = epoch + 1
-        # log_dict["lr"]                       = scheduler.get_last_lr()[0]
-        # log_dict[f"val/{primary_metric_name}"] = cur_metric
-        # wandb.log(log_dict)
+        log_dict = {f"train/{k}": v for k, v in train_m.items()}
+        log_dict.update({f"val/{k}": v for k, v in val_m.items()})
+        log_dict["epoch"]                    = epoch + 1
+        log_dict["lr"]                       = scheduler.get_last_lr()[0]
+        log_dict[f"val/{primary_metric_name}"] = cur_metric
+        wandb.log(log_dict)
 
-        # ── Save last checkpoint (always, for resuming) ───────────────────────
+
         save_checkpoint({
             "epoch":        epoch + 1,
             "state_dict":   model.state_dict(),
@@ -560,7 +554,7 @@ def main():
             "best_metric":  best_metric,
         }, last_path)
 
-        # ── Save best checkpoint — based on Gradescope primary metric ─────────
+
         if cur_metric > best_metric:
             best_metric = cur_metric
             save_checkpoint({
@@ -571,9 +565,9 @@ def main():
             }, best_path)
             print(f"  ✓ New best model saved  "
                   f"({primary_metric_name} = {best_metric:.4f})")
-            # wandb.run.summary[primary_metric_name] = best_metric  # uncomment with W&B
+            wandb.run.summary[primary_metric_name] = best_metric 
 
-    # wandb.finish()   # uncomment with W&B
+    wandb.finish()   
     print("\n" + "=" * 60)
     print("  Training complete!")
     print(f"  last checkpoint : {last_path}")

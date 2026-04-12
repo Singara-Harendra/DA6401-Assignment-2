@@ -26,7 +26,7 @@ class VGG11Localizer(nn.Module):
         geometric task using features optimised purely for recognition.
     """
 
-    IMAGE_SIZE: int = 224  # expected input resolution for coordinate scaling
+    IMAGE_SIZE: int = 224 
 
     def __init__(self, in_channels: int = 3, dropout_p: float = 0.5):
         """
@@ -41,14 +41,14 @@ class VGG11Localizer(nn.Module):
 
         self.adaptive_pool = nn.AdaptiveAvgPool2d((7, 7))
 
-        # Regression head
+
         self.regressor = nn.Sequential(
             nn.Flatten(),
             nn.Linear(512 * 7 * 7, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(inplace=True),
             CustomDropout(p=dropout_p),
-            nn.Linear(1024, 4),   # raw logits -> (cx, cy, w, h) in [0,1] after sigmoid
+            nn.Linear(1024, 4),  
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -62,11 +62,11 @@ class VGG11Localizer(nn.Module):
             format expressed in original image pixel space (not normalised).
         """
         H, W = x.shape[2], x.shape[3]
-        features = self.encoder(x)            # [B, 512, H/32, W/32]
-        pooled   = self.adaptive_pool(features)  # [B, 512, 7, 7]
-        raw      = self.regressor(pooled)     # [B, 4]  unbounded
+        features = self.encoder(x)           
+        pooled   = self.adaptive_pool(features)  
+        raw      = self.regressor(pooled)    
 
-        # Sigmoid maps to (0, 1); scale to pixel space
-        normalised = torch.sigmoid(raw)        # [B, 4] in (0, 1)
+
+        normalised = torch.sigmoid(raw)        
         scale = torch.tensor([W, H, W, H], dtype=x.dtype, device=x.device)
-        return normalised * scale              # [B, 4] pixel coordinates
+        return normalised * scale              

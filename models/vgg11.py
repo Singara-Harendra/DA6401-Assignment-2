@@ -86,10 +86,9 @@ class VGG11Encoder(nn.Module):
             - if return_features=True: (bottleneck, feature_dict) where feature_dict
               contains pre-pool activations for skip connections keyed by block name.
         """
-        # We need pre-pool features for skip connections, so run each sub-layer manually.
         # Block 1
-        x1_conv = self._run_conv_only(self.block1, x)   # [B,64,H,W]  before pool
-        x1 = self.block1[-1](x1_conv)                    # after pool -> [B,64,H/2,W/2]
+        x1_conv = self._run_conv_only(self.block1, x)   
+        x1 = self.block1[-1](x1_conv)                    
 
         # Block 2
         x2_conv = self._run_conv_only(self.block2, x1)
@@ -105,17 +104,17 @@ class VGG11Encoder(nn.Module):
 
         # Block 5
         x5_conv = self._run_conv_only(self.block5, x4)
-        x5 = self.block5[-1](x5_conv)  # bottleneck [B,512,H/32,W/32]
+        x5 = self.block5[-1](x5_conv)  
 
         if not return_features:
             return x5
 
         features = {
-            "block1": x1_conv,  # [B,64,  H,    W   ]
-            "block2": x2_conv,  # [B,128, H/2,  W/2 ]
-            "block3": x3_conv,  # [B,256, H/4,  W/4 ]
-            "block4": x4_conv,  # [B,512, H/8,  W/8 ]
-            "block5": x5_conv,  # [B,512, H/16, W/16]
+            "block1": x1_conv,  
+            "block2": x2_conv,  
+            "block3": x3_conv,  
+            "block4": x4_conv,  
+            "block5": x5_conv,  
         }
         return x5, features
 
@@ -125,5 +124,4 @@ class VGG11Encoder(nn.Module):
         for layer in block[:-1]:
             x = layer(x)
         return x
-# Alias required by autograder: from models.vgg11 import VGG11
 VGG11 = VGG11Encoder
